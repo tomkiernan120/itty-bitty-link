@@ -6,7 +6,7 @@ import { faPlus, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { handleDelete } from "@/app/actions/links"; 
 import Button from "@/components/Button/primary";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Link, LinkAlias } from "@prisma/client";
+import { Link } from "@prisma/client";
 import CopyLink from "./CopyLink";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -14,9 +14,8 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 export default function LinksList() {
     const session = useSession();
 
-    const [pageIndex, setPageIndex] = useState(1);
-
-    const [selected, setSelected] = useState([]);
+    const [pageIndex, setPageIndex] = useState<number>(1);
+    const [selected, setSelected] = useState<string[]>([]);
 
     const selectAll = () => {
         if(selected?.length === data?.links?.length) {
@@ -28,7 +27,6 @@ export default function LinksList() {
     }
 
     const { data, error, isLoading } = useSWR(`/api/links?page=${pageIndex}`, session ? fetcher : null);
-
 
     return (
         <div className="flex flex-col">
@@ -58,7 +56,7 @@ export default function LinksList() {
                 <table className="table-auto w-full">
                     <thead className="hidden md:table-header-group border-b">
                         <tr className="flex flex-col md:table-row mb-8 md:mb-0">
-                            <th className="table-cell text-left px-2 pb-2"><input type="checkbox" selected={selected?.length === data?.links?.length && selected?.length} onClick={() => selectAll()} /></th>
+                            <th className="table-cell text-left px-2 pb-2"><input type="checkbox" selected={(selected?.length === data?.links?.length && selected?.length) ? true : false} onClick={() => selectAll()} /></th>
                             <th className="table-cell text-left px-2 pb-2">Title</th>
                             <th className="table-cell text-left px-2 pb-2">URL</th>
                             <th className="table-cell text-left px-2 pb-2">Alias</th>
@@ -88,7 +86,8 @@ export default function LinksList() {
                                 <td className="table-cell text-left px-2 py-2"><input type="checkbox" checked={selected?.includes(link.id)} onChange={() => {
                                     if(selected?.includes(link.id)) {
                                         setSelected(selected.filter((id) => id !== link.id));
-                                    } else {
+                                    } 
+                                    else {
                                         setSelected([...selected, link.id]);
                                     }
                                 }} /></td>

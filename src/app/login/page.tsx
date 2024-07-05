@@ -1,35 +1,37 @@
-import React from 'react'; // Add this line
+import React from "react"; // Add this line
 
-import { signIn } from "../auth"
+import { auth } from "@/app/auth";
+import { handleLogin } from "@/app/actions/authentication";
 import GoogleLoginButton from "./GoogleLoginButton";
+import Input from "@/components/Forms/Input";
+import Button from "@/components/Button/primary";
+import { redirect } from "next/navigation";
 
 export default async function Login() {
-    const handleSubmit = async (formdata: FormData) => {
-        "use server";
-        await signIn("credentials", formdata, {
-          redirectTo: "/dashboard"
-        });
-    }
+  const session = await auth();
 
-    const handleGoogle = async () => {
-        "use server";
-        await signIn("google", {
-          callbackUrl: "/dashboard"
-        });
-    }
+  if (session) {
+    return redirect("/dashboard");
+  }
 
-    return <main>
-        <h1>Login</h1>
+  return (
+    <main>
+      <div className="mx-auto flex h-auto items-center">
+        <form
+          className="border rounded-lg bg-white flex flex-col space-y-8 px-8 py-6 drop-shadow min-w-80 mt-28"
+          action={handleLogin}
+        >
+          <h3 className="text-lg text-slate-600 mb-2">Login</h3>
 
-        <form action={handleSubmit}>
-          <label htmlFor="email">Email</label>
-          <input type="email" name="email" />
+          <Input type="email" label="Email"  />
 
-          <label htmlFor="password">Password</label>
-          <input type="password" name="password" />
+          <Input type="password" label="Password" />
 
-          <button type="submit">Login</button>
+          <Button label="Login" variant="primary" type="submit" />
+
           <GoogleLoginButton />
         </form>
-      </main>;
+      </div>
+    </main>
+  );
 }

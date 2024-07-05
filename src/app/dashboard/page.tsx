@@ -13,13 +13,17 @@ export default async function Page() {
 
   return (
     <main>
-      <h1>Dashboard</h1>
+      <div className="container mx-auto space-y-2 py-10">
+        <div className="flex flex-col space-y-2 mb-8">
+          <h2 className="text-2xl font-bold text-gray-500">Dashboard</h2>
+          <p className="text-gray-700 mb-12">Welcome to your dashboard, {session?.user?.name ?? session?.user?.email}!</p>
+        </div>
 
-      <p>Welcome to the dashboard</p>
 
-      <SessionProviderWrapper>
-        <LinksList />
-      </SessionProviderWrapper>
+        <SessionProviderWrapper>
+          <LinksList />
+        </SessionProviderWrapper>
+      </div>
     </main>
   );
 }

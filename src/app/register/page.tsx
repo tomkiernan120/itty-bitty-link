@@ -1,7 +1,9 @@
-import prisma from "@/utils/prisma"
-import bcrypt from "bcryptjs";
 import { auth } from "../auth";
 import { redirect } from "next/navigation";
+import Input from "@/components/Forms/Input";
+import Button from "@/components/Button/primary";
+import Link from "next/link";
+import { handleRegister } from "@/app/actions/authentication";
 
 export default async function Register() {
     const session = await auth();
@@ -10,42 +12,27 @@ export default async function Register() {
         return redirect("/dashboard");
     }
 
-    const handleSubmit = async (formdata: FormData) => {
-        "use server";
+    return <main>
+        <div className="mx-auto flex h-auto items-center">
+          <form className="border rounded-lg bg-white flex flex-col space-y-8 px-8 py-6 drop-shadow min-w-80 mt-28" action={handleRegister}>
+            <h3 className="text-lg text-slate-600 mb-2">
+              Register an account
+            </h3>
 
-        const { name, email, password } = Object.fromEntries(formdata);
+            <Input type="text" label="Name" />
 
-        const passwordHashed = await bcrypt.hash(password, 10);
+            <Input type="email" label="Email" />
 
-        const user = await prisma.user.create({
-          data: {
-            name: name as string,
-            email: email as string,
-            password: passwordHashed
-          }
-        });
+            <Input type="password" label="Password" />
 
+            <Button label="Register" variant="primary" type="submit" />
 
-        console.log(user);
-    }
-
-    return (
-        <main>
-            <h1>Register</h1>
-
-            <form action={handleSubmit}>
-                <label htmlFor="name">Name</label>
-                <input type="text" name="name" />
-
-                <label htmlFor="email">Email</label>
-                <input type="email" name="email" />
-
-                <label htmlFor="password">Password</label>
-                <input type="password" name="password" />
-
-                <button type="submit">Register</button>
-
-            </form>
-        </main>
-    )
+            <p className="text-slate-500 text-sm text-center">
+              Got an account? <Link className="font-semibold" href="/login">
+                Login here
+              </Link>
+            </p>
+          </form>
+        </div>
+      </main>;
 }

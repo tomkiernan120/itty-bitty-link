@@ -10,6 +10,12 @@ const linkSchema = z.object({
   url: z.string().url()
 });
 
+const updatelinkSchema = z.object({
+  title: z.string().min(1),
+  url: z.string().url(),
+  id: z.string()
+});
+
 export const handleDelete = async (id: string) => {
   "use server";
 
@@ -55,14 +61,11 @@ export const handleCreate = async (formData: FormData) => {
     const title = formData.get("title") as string;
     const url = formData.get("url") as string;
 
-    console.log(title);
-
     const validate = linkSchema.safeParse({
       title,
       url
     });
 
-    console.log(validate);
 
     if (!validate.success) {
       throw new Error(validate.error);
@@ -103,43 +106,68 @@ export const handleCreate = async (formData: FormData) => {
   redirect("/dashboard");
 };
 
-export const handleUpdate = async (formData: FormData, id: string) => {
+export const handleUpdate = async (formData: FormData) => {
   "use server";
-  const title = formData.get("title") as string;
-  const url = formData.get("url") as string;
-  let linkAlias;
 
-  let link = await prisma.link.findUnique({
-    where: {
-      id
+  const session = await auth();
+
+  try {
+
+    if (!session) {
+      throw new Error('Not authenticated');
     }
-  });
-
-  if (url !== link.url) {
-    linkAlias = await prisma.linkAlias.findUnique({
+  
+    const validate = updatelinkSchema.safeParse(Object.fromEntries(formData));
+  
+    if (!validate.success) {
+      throw new Error(validate.error);
+    }
+  
+    const id = formData.get("id") as string;
+    const title = formData.get("title") as string;
+    const url = formData.get("url") as string;
+  
+    let linkAlias;
+  
+    let link = await prisma.link.findUnique({
       where: {
-        url: url as string
+        id
       }
     });
-
-    if (!linkAlias) {
-      linkAlias = await prisma.linkAlias.create({
-        data: {
-          url,
-          alias: await generateAlias()
+  
+    if (url !== link.url) {
+      linkAlias = await prisma.linkAlias.findUnique({
+        where: {
+          url: url as string
         }
       });
+  
+      if (!linkAlias) {
+        linkAlias = await prisma.linkAlias.create({
+          data: {
+            url,
+            alias: await generateAlias()
+          }
+        });
+      }
     }
+  
+    link = await prisma.link.update({
+      where: {
+        id
+      },
+      data: {
+        title,
+        url,
+        linkAliasId: linkAlias?.id
+      }
+    });
+  }
+  catch(err) {
+    throw new Error(err);
   }
 
-  link = await prisma.link.update({
-    where: {
-      id
-    },
-    data: {
-      title,
-      url,
-      linkAliasId: linkAlias?.id
-    }
-  });
+
+  // redirect to /dashboard
+  redirect("/dashboard");
 };

@@ -9,17 +9,23 @@ export default await async function Page({ params
         return null;
     }
 
-    const link = await prisma.link.findUnique({
+    const linkAlias = await prisma.linkAlias.findUnique({
         where: {
-            id
+            alias: id
+        },
+        include: {
+            links: true
         }
     });
 
-    if(link) {
-        // redirect to the link
-        return redirect(link.url)
-    }
+    console.log(linkAlias);
 
-    
-    return null;
+    if(linkAlias) {
+        // redirect to the link
+        return redirect(linkAlias.links[0].url)
+    }
+    else {
+        // redirect to 404
+        return redirect("/404");
+    }
 }

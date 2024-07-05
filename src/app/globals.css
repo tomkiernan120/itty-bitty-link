@@ -18,7 +18,7 @@ body {
 
 main {
   @apply flex flex-col;
-  min-height: calc(100vh - 8rem)
+  min-height: calc(100vh - 8rem);
 }
 
 .background {
@@ -29,8 +29,6 @@ main {
   left: 0;
   right: 0;
   z-index: -1;
-
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
 }
 
 .background .inner {

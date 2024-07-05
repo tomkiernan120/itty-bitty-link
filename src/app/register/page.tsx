@@ -13,8 +13,8 @@ export default async function Register() {
     }
 
     return <main>
-        <div className="mx-auto flex h-auto items-center">
-          <form className="border rounded-lg bg-white flex flex-col space-y-8 px-8 py-6 drop-shadow min-w-80 mt-28" action={handleRegister}>
+        <div className="px-8 md:mx-auto flex h-auto items-center">
+          <form className="border rounded-lg bg-white flex flex-col space-y-8 px-8 py-6 drop-shadow min-w-full md:min-w-80 mt-10 md:mt-28" action={handleRegister}>
             <h3 className="text-lg text-slate-600 mb-2">
               Register an account
             </h3>

@@ -56,7 +56,7 @@ export default function LinksList() {
                 <table className="table-auto w-full">
                     <thead className="hidden md:table-header-group border-b">
                         <tr className="flex flex-col md:table-row mb-8 md:mb-0">
-                            <th className="table-cell text-left px-2 pb-2"><input type="checkbox" selected={(selected?.length === data?.links?.length && selected?.length) ? true : false} onClick={() => selectAll()} /></th>
+                            <th className="table-cell text-left px-2 pb-2"><input type="checkbox" checked={(selected?.length === data?.links?.length && selected?.length) ? true : false} onClick={() => selectAll()} /></th>
                             <th className="table-cell text-left px-2 pb-2">Title</th>
                             <th className="table-cell text-left px-2 pb-2">URL</th>
                             <th className="table-cell text-left px-2 pb-2">Alias</th>

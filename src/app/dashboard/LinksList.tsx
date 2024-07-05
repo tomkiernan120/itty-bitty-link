@@ -14,13 +14,14 @@ export default function LinksList() {
 
     const { data, error, isLoading } = useSWR("/api/links", session ? fetcher : null);
 
+
     return (
         <div className="flex flex-col">
             <div className="flex flex-row mb-8 justify-end space-x-2">
                 <Button type="link" href="/dashboard/create" variant="primary" label={<>Create <FontAwesomeIcon icon={faPlus} /></>} />
             </div>
 
-            <div className="flex bg-white border border-gray-200 drop-shadow p-4 rounded-lg">
+            <div className="flex bg-white border border-gray-200 drop-shadow py-4 rounded-lg">
 
                 <table className="table-auto w-full">
                     <thead className=" table-header-group border-b">
@@ -33,22 +34,24 @@ export default function LinksList() {
                         </tr>
                     </thead>
                     <tbody>
-                        {data?.length === 0 && error (
+                        {data?.length === 0 && error && (
                             <tr>
                                 <td className="table-cell text-left px-2 py-2" colSpan={5}>Uh, Oh! There was an error!</td>
                             </tr>
                         
                         )}
-                        {data?.length === 0 && isLoading (
+                        {data?.length === 0 && isLoading && (
                             <tr>
                                 <td className="table-cell text-left px-2 py-2" colSpan={5}>
-                                    <FontAwesomeIcon icon={faSpinner} spinPulse />
+                                    <div className="flex justify-center py-2 pt-4">
+                                        <FontAwesomeIcon icon={faSpinner} size="2x" spinPulse />
+                                    </div>
                                 </td>
                             </tr>
                         
                         )}
                         {data?.map((link: any) => (
-                            <tr key={link.id}>
+                            <tr key={link.id} className="odd:bg-green-300/5">
                                 <td className="table-cell text-left px-2 py-2"><input type="checkbox" /></td>
                                 <td className="table-cell text-left px-2 py-2">{link.title}</td>
                                 <td className="table-cell text-left px-2 py-2">{link.url}</td>

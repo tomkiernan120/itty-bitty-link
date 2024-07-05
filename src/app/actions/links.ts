@@ -3,6 +3,12 @@
 import prisma from "@/utils/prisma";
 import { auth } from "../auth";
 import { redirect } from "next/navigation";
+import z from "zod";
+
+const linkSchema = z.object({
+  title: z.string().min(1),
+  url: z.string().url()
+});
 
 export const handleDelete = async (id: string) => {
   "use server";
@@ -40,47 +46,61 @@ export const generateAlias = async (): Promise<string> => {
 export const handleCreate = async (formData: FormData) => {
   "use server";
   try {
-      const session = await auth();
-    
-      if (!session) {
-        return;
+    const session = await auth();
+
+    if (!session) {
+      return;
+    }
+
+    const title = formData.get("title") as string;
+    const url = formData.get("url") as string;
+
+    console.log(title);
+
+    const validate = linkSchema.safeParse({
+      title,
+      url
+    });
+
+    console.log(validate);
+
+    if (!validate.success) {
+      throw new Error(validate.error);
+      return;
+    }
+
+    let linkAlias;
+
+    linkAlias = await prisma.linkAlias.findFirst({
+      where: {
+        url: url as string
       }
-    
-      const title = formData.get("title") as string;
-      const url = formData.get("url") as string;
-      let linkAlias;
-    
-      linkAlias = await prisma.linkAlias.findFirst({
-        where: {
-          url: url as string
-        }
-      });
-    
-      if (!linkAlias) {
-        linkAlias = await prisma.linkAlias.create({
-          data: {
-            url,
-            alias: await generateAlias()
-          }
-        });
-      }
-    
-      const link = await prisma.link.create({
+    });
+
+    if (!linkAlias) {
+      linkAlias = await prisma.linkAlias.create({
         data: {
-          title,
-          image: null,
-          linkAliasId: linkAlias?.id,
           url,
-          userId: session.user.id as string
+          alias: await generateAlias()
         }
       });
-  }
-  catch(err) {
-    console.log(err);
+    }
+
+    const link = await prisma.link.create({
+      data: {
+        title,
+        image: null,
+        linkAliasId: linkAlias?.id,
+        url,
+        userId: session.user.id as string
+      }
+    });
+  } catch (err) {
+    throw new Error(err);
   }
 
   // redirect to /dashboard
-  redirect('/dashboard');
+  redirect("/dashboard");
 };
 
 export const handleUpdate = async (formData: FormData, id: string) => {

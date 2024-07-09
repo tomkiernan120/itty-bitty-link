@@ -6,7 +6,8 @@ import { useState } from "react";
 
 export default function CopyLink({ alias }: { alias: string }) {
     const [showCopied, setShowCopied] = useState<boolean>(false);
-    const link = `http://localhost:3000/r/${alias}`
+    const baseUrl = window && window.location.origin;
+    const link = `${baseUrl}/r/${alias}`;
 
     return (
         <span className="flex flex-row space-x-2 bg-gray-100 p-1 rounded-lg items-center justify-center text-slate-700">

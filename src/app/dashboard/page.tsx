@@ -7,7 +7,7 @@ import SessionProviderWrapper from "@/components/SessionProviderWrapper";
 export default async function Page() {
   const session = await auth();
 
-  if (!session) {
+  if (!session || !session.user || !session.user.id) {
     return redirect("/login");
   }
 

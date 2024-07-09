@@ -11,7 +11,7 @@ import Link from "next/link";
 export default async function Login() {
   const session = await auth();
 
-  if (session) {
+  if (session && session.user && session.user.id) {
     return redirect("/dashboard");
   }
 

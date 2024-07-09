@@ -8,7 +8,7 @@ import { handleRegister } from "@/app/actions/authentication";
 export default async function Register() {
     const session = await auth();
 
-    if(session) {
+    if(session && session.user && session.user.id) {
         return redirect("/dashboard");
     }
 

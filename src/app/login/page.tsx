@@ -30,7 +30,7 @@ export default async function Login() {
 
           <p className="text-slate-500 text-sm text-center">
             Not got an account? <Link className="font-semibold" href="/login">
-              Login here
+              Register here
             </Link>
           </p>
         </form>

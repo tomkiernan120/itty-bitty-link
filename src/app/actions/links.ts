@@ -68,8 +68,7 @@ export const handleCreate = async (formData: FormData) => {
 
 
     if (!validate.success) {
-      throw new Error(validate.error);
-      return;
+      throw new Error(JSON.stringify(validate.error.issues));
     }
 
     let linkAlias;
@@ -95,11 +94,11 @@ export const handleCreate = async (formData: FormData) => {
         image: null,
         linkAliasId: linkAlias?.id,
         url,
-        userId: session.user.id as string
+        userId: session?.user?.id as string
       }
     });
-  } catch (err) {
-    throw new Error(err);
+  } catch (err: any) {
+    throw new Error(err.toString());
   }
 
   // redirect to /dashboard
@@ -120,7 +119,7 @@ export const handleUpdate = async (formData: FormData) => {
     const validate = updatelinkSchema.safeParse(Object.fromEntries(formData));
   
     if (!validate.success) {
-      throw new Error(validate.error);
+      throw new Error(JSON.stringify(validate.error.issues));
     }
   
     const id = formData.get("id") as string;
@@ -135,10 +134,10 @@ export const handleUpdate = async (formData: FormData) => {
       }
     });
   
-    if (url !== link.url) {
+    if (link && url !== link.url) {
       linkAlias = await prisma.linkAlias.findUnique({
         where: {
-          url: url as string
+          alias: url as string
         }
       });
   
@@ -163,8 +162,8 @@ export const handleUpdate = async (formData: FormData) => {
       }
     });
   }
-  catch(err) {
-    throw new Error(err);
+  catch(err: any) {
+    throw new Error(err.toString());
   }
 
 

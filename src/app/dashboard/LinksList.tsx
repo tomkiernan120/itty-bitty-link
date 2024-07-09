@@ -94,7 +94,7 @@ export default function LinksList() {
                                 <td className="table-cell text-left px-2 py-2 text-sm">{link.title}</td>
                                 <td className="table-cell text-left px-2 py-2 text-sm break-words">{link.url}</td>
                                 <td className="table-cell text-left px-2 py-2 text-sm break-words">
-                                    <CopyLink alias={link.linkAlias?.alias || ""} />
+                                    <CopyLink alias={(link as any).linkAlias?.alias || ""} />
                                 </td>
                                 <td className="table-cell text-left px-2 py-2 text-sm">{new Date(link.createdAt).toLocaleDateString()}</td>
                                 <td className="table-cell text-left px-2 py-2">

@@ -10,7 +10,7 @@ export async function GET(request: Request ) {
     }
 
     var num_per_page = 10;
-    var page = parseInt(request.nextUrl.searchParams.get('page'));
+    var page = parseInt((request as any).nextUrl.searchParams.get('page'));
 
     var skip = (page > 0 ? page - 1 : 0) * num_per_page;
     var take = num_per_page;
@@ -18,7 +18,7 @@ export async function GET(request: Request ) {
 
     const links = await prisma.link.findMany({
         where: {
-            userId: session.userId,
+            userId: session?.user?.id as string,
         },
         include: {
             linkAlias: true,
@@ -32,7 +32,7 @@ export async function GET(request: Request ) {
 
     var numPages = Math.ceil(await prisma.link.count({
         where: {
-            userId: session.userId,
+            userId: session?.user?.id as string,
         }
     }) / num_per_page);
 

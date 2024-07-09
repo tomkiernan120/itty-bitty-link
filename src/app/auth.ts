@@ -21,7 +21,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           const user = await prisma.user.findFirst({
             where: {
-              email: email
+              email: email as string
             }
           });
 
@@ -29,7 +29,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             throw new Error("User not found.");
           }
 
-          if (user && bcrypt.compareSync(password, user.password)) {
+          if (user && bcrypt.compareSync(password as string, user.password as string)) {
             console.log("User found");
             return user;
           }

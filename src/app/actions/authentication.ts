@@ -37,7 +37,18 @@ export const handleRegister = async (formdata: FormData) => {
         password: passwordHashed
       }
     });
+
+    // Auto-login after successful registration
+    await signIn("credentials", {
+      email: normalizedEmail,
+      password: validation.data.password,
+      redirectTo: "/dashboard"
+    });
   } catch (error: any) {
+    // Handle duplicate email error
+    if (error.code === "P2002") {
+      throw new Error("An account with this email already exists");
+    }
     throw new Error(error.message || "Registration failed");
   }
 };

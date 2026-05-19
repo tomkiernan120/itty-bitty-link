@@ -4,10 +4,17 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import Credentials from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
-
+import { env } from "@/env";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
+  secret: env.AUTH_SECRET,
+  trustHost: true,
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60, // 24 hours
+  },
   providers: [
     Credentials({
       name: "Credentials",
@@ -17,11 +24,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       async authorize(credentials) {
         try {
-          const { email, password } = credentials;
+          const email = String(credentials?.email ?? "").trim().toLowerCase();
+          const password = String(credentials?.password ?? "");
+
+          if (!email || !password) {
+            return null;
+          }
 
           const user = await prisma.user.findFirst({
             where: {
-              email: email as string
+              email
             }
           });
 
@@ -29,40 +41,39 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             throw new Error("User not found.");
           }
 
-          if (user && bcrypt.compareSync(password as string, user.password as string)) {
-            console.log("User found");
-            return user;
+          // Users created through OAuth may not have a local password.
+          if (typeof user.password !== "string" || user.password.length === 0) {
+            return null;
           }
 
-          return null;
+          const isValidPassword = await bcrypt.compare(password, user.password);
+
+          if (!isValidPassword) {
+            return null;
+          }
+
+          return user;
         } catch (error) {
-          console.log(error);
+          console.error('Authentication error:', error);
           return null;
         }
       }
     }),
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
       allowDangerousEmailAccountLinking: true,
     })
   ],
   callbacks: {
-    async session({ session, token, user }) {
-      // console.log("session");
-      // console.log(session);
-      // console.log(token);
-      // console.log(user);
-      session.userId = user.id;
+    async session({ session, token }) {
+      if (session.user && typeof token.id === "string") {
+        session.user.id = token.id;
+      }
+
       return session;
     },
-    async jwt({ token, user, account, profile, isNewUser }) {
-      // console.log("jwt");
-      // console.log(token);
-      // console.log(user);
-      // console.log(account);
-      // console.log(profile);
-      // console.log(isNewUser);
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
       }

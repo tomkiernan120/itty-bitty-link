@@ -18,7 +18,7 @@ interface InputProps {
 export default function Input({ label, type, placeholder, value, onChange, required, disabled, wrapperClassName, labelClassName, inputClassName, name, defaultValue }: InputProps) {
     return (
         <div className={twMerge("flex flex-col flex-grow flex-shrink-0 space-y-2", wrapperClassName)}>
-            {label && <label className={twMerge("text-base text-gray-800 w-full",labelClassName)}>{label}</label>}
+            {label && <label className={twMerge("text-base text-slate-700 font-medium w-full",labelClassName)}>{label}</label>}
             <input
                 type={type}
                 placeholder={placeholder}
@@ -28,7 +28,7 @@ export default function Input({ label, type, placeholder, value, onChange, requi
                 disabled={disabled}
                 name={name ?? label}
                 defaultValue={defaultValue}
-                className={twMerge("h-12 rounded-lg border border-gray-200 bg-slate-100 px-2 w-full text-base", inputClassName )}
+                className={twMerge("h-12 rounded-lg border border-gray-200 bg-slate-100 px-3 w-full text-base focus:outline-none focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-teal-200 transition-all", inputClassName )}
             />
         </div>
     )

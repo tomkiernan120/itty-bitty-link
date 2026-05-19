@@ -2,6 +2,9 @@ import { auth } from "@/app/auth";
 
 import prisma from "@/utils/prisma";
 
+// Dynamic route - user-specific data changes per request
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request ) {
     const session = await auth();
 
@@ -30,11 +33,13 @@ export async function GET(request: Request ) {
         take: take,
     });
 
-    var numPages = Math.ceil(await prisma.link.count({
+    const totalCount = await prisma.link.count({
         where: {
             userId: session?.user?.id as string,
         }
-    }) / num_per_page);
+    });
 
-    return new Response(JSON.stringify({ links: links, pages: numPages }));
+    var numPages = Math.ceil(totalCount / num_per_page);
+
+    return new Response(JSON.stringify({ links: links, pages: numPages, total: totalCount }));
 }

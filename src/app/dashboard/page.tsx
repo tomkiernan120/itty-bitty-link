@@ -2,7 +2,9 @@ import React from "react";
 import { auth } from "@/app/auth";
 import { redirect } from "next/navigation";
 import LinksList from "./LinksList";
-import SessionProviderWrapper from "@/components/SessionProviderWrapper";
+
+// Dashboard is always dynamic - user-specific data
+export const dynamic = 'force-dynamic';
 
 export default async function Page() {
   const session = await auth();
@@ -15,14 +17,12 @@ export default async function Page() {
     <main>
       <div className="container px-8 md:px-0 md:mx-auto space-y-2 py-10">
         <div className="flex flex-col space-y-2 mb-8">
-          <h2 className="text-2xl font-bold text-gray-700">Dashboard</h2>
-          <p className="text-gray-700 mb-12">Welcome to your dashboard, {session?.user?.name ?? session?.user?.email}!</p>
+          <h2 className="text-2xl font-bold text-slate-700">Dashboard</h2>
+          <p className="text-slate-600 mb-12">Welcome to your dashboard, {session?.user?.name ?? session?.user?.email}!</p>
         </div>
 
 
-        <SessionProviderWrapper>
-          <LinksList />
-        </SessionProviderWrapper>
+        <LinksList />
       </div>
     </main>
   );

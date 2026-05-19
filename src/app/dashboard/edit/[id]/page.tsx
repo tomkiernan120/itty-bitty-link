@@ -8,6 +8,9 @@ import { handleUpdate } from '@/app/actions/links';
 import Input from '@/components/Forms/Input';
 import Button from '@/components/Button/primary';
 
+// Edit page is always dynamic - requires authentication and specific link data
+export const dynamic = 'force-dynamic';
+
 export default async function Page({ params }: { params: { id: string }}) {
     const session = await auth();
 
@@ -27,10 +30,9 @@ export default async function Page({ params }: { params: { id: string }}) {
         return redirect('/dashboard');
     }
 
-    return <main>
-        <div className="px-8 md:px-0 mx-auto flex h-auto items-center">
-          <form className="border rounded-lg bg-white flex flex-col space-y-8 px-8 py-6 drop-shadow w-full md:min-w-80 mt-28" action={handleUpdate}>
-            <h3 className="text-lg text-slate-600 mb-2">Edit Link</h3>
+    return <main className="flex items-center justify-center py-10">
+          <form className="border rounded-lg bg-white flex flex-col space-y-8 px-8 py-6 drop-shadow w-full md:w-96" action={handleUpdate}>
+            <h3 className="text-lg text-slate-700 font-bold mb-2">Edit Link</h3>
 
             <input type="hidden" name="id" value={id} />
 
@@ -40,6 +42,5 @@ export default async function Page({ params }: { params: { id: string }}) {
 
             <Button type="submit" variant="primary" label="Update" />
           </form>
-        </div>
       </main>;
 }

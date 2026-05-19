@@ -2,11 +2,17 @@
 
 import { faCopy } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function CopyLink({ alias }: { alias: string }) {
     const [showCopied, setShowCopied] = useState<boolean>(false);
-    const baseUrl = window && window.location.origin;
+    const [baseUrl, setBaseUrl] = useState<string>("");
+
+    // Set baseUrl only on client-side to avoid hydration issues
+    useEffect(() => {
+        setBaseUrl(window.location.origin);
+    }, []);
+
     const link = `${baseUrl}/r/${alias}`;
 
     return (
@@ -18,7 +24,7 @@ export default function CopyLink({ alias }: { alias: string }) {
                     Copied
                 </div>}
 
-                <FontAwesomeIcon className="cursor-pointer" onClick={() => {
+                <FontAwesomeIcon className="cursor-pointer w-4 h-4" fixedWidth onClick={() => {
                     setShowCopied(true);
                     setTimeout(() => setShowCopied(false), 2000);
                     navigator.clipboard.writeText(link);

@@ -23,16 +23,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={rubik.className}>
-        <SessionProviderWrapper>
-          <Header />
-        </SessionProviderWrapper>
+      <body className={`${rubik.className} flex flex-col min-h-screen`}>
         <div className="background">
           <div className="inner"></div>
         </div>
-        {children}
-        <Footer />
-        </body>
+        <SessionProviderWrapper>
+          <Header />
+          <main className="flex-grow">
+            {children}
+          </main>
+          <Footer />
+        </SessionProviderWrapper>
+      </body>
     </html>
   );
 }

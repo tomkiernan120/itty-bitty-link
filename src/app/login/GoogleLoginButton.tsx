@@ -11,5 +11,5 @@ export default function GoogleLoginButton() {
     await signIn("google");
   }
 
-  return <Button variant="secondary" onClick={handleGoogle} label={<>Google <FontAwesomeIcon icon={faGoogle} /></>} />
+  return <Button variant="secondary" onClick={handleGoogle} label={<>Google <FontAwesomeIcon className="ml-2 w-4 h-4" fixedWidth icon={faGoogle} /></>} />
 }

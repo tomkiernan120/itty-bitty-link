@@ -1,8 +1,4 @@
-"use server";
-
-import { signIn } from "@/app/auth";
-import { AuthError } from "next-auth";
-import { redirect } from "next/navigation";
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/utils/prisma";
 import bcrypt from "bcryptjs";
 import z from "zod";
@@ -13,10 +9,12 @@ const registerSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters")
 });
 
-export const handleRegister = async (formdata: FormData) => {
+export async function POST(request: NextRequest) {
   try {
+    const formdata = await request.formData();
     const { name, email, password } = Object.fromEntries(formdata);
 
+    // Validate form data
     const validation = registerSchema.safeParse({
       name,
       email,
@@ -24,7 +22,10 @@ export const handleRegister = async (formdata: FormData) => {
     });
 
     if (!validation.success) {
-      throw new Error(JSON.stringify(validation.error.issues));
+      return NextResponse.json(
+        { message: JSON.stringify(validation.error.issues) },
+        { status: 400 }
+      );
     }
 
     const passwordHashed = await bcrypt.hash(validation.data.password, 10);
@@ -37,23 +38,12 @@ export const handleRegister = async (formdata: FormData) => {
         password: passwordHashed
       }
     });
+
+    return NextResponse.json({ message: "Registration successful" }, { status: 201 });
   } catch (error: any) {
-    throw new Error(error.message || "Registration failed");
+    return NextResponse.json(
+      { message: error.message || "Registration failed" },
+      { status: 500 }
+    );
   }
-};
-
-export const handleLogin = async (formdata: FormData) => {
-  try {
-    await signIn("credentials", {
-      email: String(formdata.get("email") ?? "").trim().toLowerCase(),
-      password: String(formdata.get("password") ?? ""),
-      redirectTo: "/dashboard"
-    });
-  } catch (error) {
-    if (error instanceof AuthError && error.type === "CredentialsSignin") {
-      redirect("/login?error=invalid_credentials");
-    }
-
-    throw error;
-  }
-};
+}

@@ -28,8 +28,18 @@ export default function LinksList() {
 
     const { data, error, isLoading } = useSWR(`/api/links?page=${pageIndex}`, session ? fetcher : null);
 
+    const isAtLimit = data?.total >= 5;
+
     return (
         <div className="flex flex-col">
+            {data?.total !== undefined && (
+                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-slate-700">
+                        <span className="font-semibold">{data.total}/5</span> links created
+                        {isAtLimit && <span className="text-orange-600 font-semibold ml-2">• Limit reached</span>}
+                    </p>
+                </div>
+            )}
             <div className="flex flex-row mb-8 justify-end space-x-2">
                 {selected?.length > 0 && (
                     <Button type="button" label={`Delete (${selected?.length})`} variant="primary" onClick={() => {
@@ -49,14 +59,21 @@ export default function LinksList() {
                     }} />
                 )}
 
-                <Button type="link" href="/dashboard/create" variant="primary" label={<span className="flex justify-center items-center space-x-2"><span>Create</span> <FontAwesomeIcon icon={faPlus} /></span>} />
+                <Button
+                    type="link"
+                    href={isAtLimit ? "#" : "/dashboard/create"}
+                    variant={isAtLimit ? "secondary" : "primary"}
+                    disabled={isAtLimit}
+                    label={<span className="flex justify-center items-center space-x-2"><span>{isAtLimit ? "Limit Reached (5/5)" : "Create"}</span> {!isAtLimit && <FontAwesomeIcon className="w-4 h-4" fixedWidth icon={faPlus} />}</span>}
+                    title={isAtLimit ? "You have reached the maximum of 5 links. Delete a link to create a new one." : "Create a new link"}
+                />
             </div>
 
             <div className="flex bg-white border border-gray-200 drop-shadow py-4 rounded-lg mb-8">
                 <table className="table-auto w-full">
                     <thead className="hidden md:table-header-group border-b">
                         <tr className="flex flex-col md:table-row mb-8 md:mb-0">
-                            <th className="table-cell text-left px-2 pb-2"><input type="checkbox" checked={(selected?.length === data?.links?.length && selected?.length) ? true : false} onClick={() => selectAll()} /></th>
+                            <th className="table-cell text-left px-2 pb-2"><input type="checkbox" checked={(selected?.length === data?.links?.length && selected?.length) ? true : false} onChange={() => selectAll()} /></th>
                             <th className="table-cell text-left px-2 pb-2">Title</th>
                             <th className="table-cell text-left px-2 pb-2">URL</th>
                             <th className="table-cell text-left px-2 pb-2">Alias</th>
@@ -75,30 +92,30 @@ export default function LinksList() {
                             <tr>
                                 <td className="table-cell text-left px-2 py-2" colSpan={5}>
                                     <div className="flex justify-center py-2 pt-4">
-                                        <FontAwesomeIcon icon={faSpinner} size="2x" spinPulse />
+                                        <FontAwesomeIcon className="w-6 h-6" icon={faSpinner} spinPulse />
                                     </div>
                                 </td>
                             </tr>
                         
                         )}
                         {data?.links?.map((link: Link) => (
-                            <tr key={link.id} className="odd:bg-green-300/5 flex flex-col md:table-row mb-8 md:mb-0">
+                            <tr key={link.id} className="odd:bg-green-300/5 flex flex-col md:table-row mb-4 md:mb-0 border-b md:border-b pb-4 md:pb-0">
                                 <td className="table-cell text-left px-2 py-2"><input type="checkbox" checked={selected?.includes(link.id)} onChange={() => {
                                     if(selected?.includes(link.id)) {
                                         setSelected(selected.filter((id) => id !== link.id));
-                                    } 
+                                    }
                                     else {
                                         setSelected([...selected, link.id]);
                                     }
                                 }} /></td>
-                                <td className="table-cell text-left px-2 py-2 text-sm">{link.title}</td>
-                                <td className="table-cell text-left px-2 py-2 text-sm break-words">{link.url}</td>
-                                <td className="table-cell text-left px-2 py-2 text-sm break-words">
+                                <td className="table-cell text-left px-2 py-2 text-sm before:content-['Title:'] before:md:content-none before:font-bold before:mr-2 before:text-slate-600">{link.title}</td>
+                                <td className="table-cell text-left px-2 py-2 text-sm break-words before:content-['URL:'] before:md:content-none before:font-bold before:mr-2 before:text-slate-600">{link.url}</td>
+                                <td className="table-cell text-left px-2 py-2 text-sm break-words before:content-['Alias:'] before:md:content-none before:font-bold before:mr-2 before:text-slate-600">
                                     <CopyLink alias={(link as any).linkAlias?.alias || ""} />
                                 </td>
-                                <td className="table-cell text-left px-2 py-2 text-sm">{new Date(link.createdAt).toLocaleDateString()}</td>
+                                <td className="table-cell text-left px-2 py-2 text-sm before:content-['Created:'] before:md:content-none before:font-bold before:mr-2 before:text-slate-600">{new Date(link.createdAt).toLocaleDateString()}</td>
                                 <td className="table-cell text-left px-2 py-2">
-                                    <div className="flex justify-end md: justify-start space-x-2">
+                                    <div className="flex flex-col md:flex-row gap-2 md:gap-0 justify-end md:justify-start md:space-x-2 before:content-['Actions:'] before:md:content-none before:font-bold before:text-slate-600 before:mb-2">
                                         <Button type="link" href={`/dashboard/edit/${link.id}`} size="small" variant="primary" label="Edit" />
                                         <Button type="button" onClick={async () => {
                                             if(confirm("Are you sure you want to delete this link?")) {

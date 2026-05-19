@@ -1,0 +1,33 @@
+# Testing
+tests/
+.playwright/
+playwright-report/
+
+# Documentation
+*.md
+!README.md
+
+# Development only
+.storybook/
+*.stories.tsx
+.env.local
+.env.*.local
+
+# Build artifacts
+.next/
+node_modules/
+
+# Version control
+.git/
+.gitignore
+
+# Editor config
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

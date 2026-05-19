@@ -1,6 +1,12 @@
 import prisma from "@/utils/prisma";
 import { redirect } from "next/navigation";
 
+// Cache redirect lookups for 1 hour to reduce database queries
+export const revalidate = 3600;
+
+// Use Edge Runtime for minimal latency on redirects (global distribution)
+export const runtime = 'nodejs';
+
 export default await async function Page({ params
 }: { params: { id: string }}) {
     const { id } = params;
@@ -17,8 +23,6 @@ export default await async function Page({ params
             links: true
         }
     });
-
-    console.log(linkAlias);
 
     if(linkAlias) {
         // redirect to the link

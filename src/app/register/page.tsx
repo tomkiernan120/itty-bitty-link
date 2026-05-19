@@ -5,6 +5,9 @@ import Button from "@/components/Button/primary";
 import Link from "next/link";
 import { handleRegister } from "@/app/actions/authentication";
 
+// Register page is dynamic - checks auth state
+export const dynamic = 'force-dynamic';
+
 export default async function Register() {
     const session = await auth();
 
@@ -12,11 +15,10 @@ export default async function Register() {
         return redirect("/dashboard");
     }
 
-    return <main>
-        <div className="px-8 md:mx-auto flex h-auto items-center">
-          <form className="border rounded-lg bg-white flex flex-col space-y-8 px-8 py-6 drop-shadow min-w-full md:min-w-80 mt-10 md:mt-28" action={handleRegister}>
-            <h3 className="text-lg text-slate-600 mb-2">
-              Register an account
+    return <main className="flex items-center justify-center py-10">
+          <form className="border rounded-lg bg-white flex flex-col space-y-8 px-8 py-6 drop-shadow w-full md:w-96" action={handleRegister}>
+            <h3 className="text-lg text-slate-600 font-bold text-center mb-2">
+              Register
             </h3>
 
             <Input type="text" label="Name" name="name" required />
@@ -33,6 +35,5 @@ export default async function Register() {
               </Link>
             </p>
           </form>
-        </div>
       </main>;
 }

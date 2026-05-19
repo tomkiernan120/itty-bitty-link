@@ -11,12 +11,12 @@ export default function Header () {
 
     return (
         <header className='w-full h-auto min-h-16'>
-            <div className="lg:container px-8 lg:px-0 lg:mx-auto flex justify-between items-center py-4">
+            <div className="container px-8 md:px-0 md:mx-auto flex justify-between items-center py-4">
                 <Link href="/">
                     <Logo />
                 </Link>
 
-                <div className="flex flex-col space-y-1 md:space-y-0 md:flex-row items-end md:justify-between space-x-1 lg:space-x-4 md:items-center">
+                <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4">
                     {status === 'authenticated' ? (
                         <>
                             <Button label="Dashboard" type="link" variant="primary" href={'/dashboard'} />

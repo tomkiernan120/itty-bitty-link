@@ -54,8 +54,19 @@ export const handleCreate = async (formData: FormData) => {
   try {
     const session = await auth();
 
-    if (!session) {
+    if (!session || !session.user) {
       return;
+    }
+
+    // Check if user has reached the 5-link limit
+    const userLinkCount = await prisma.link.count({
+      where: {
+        userId: session.user.id as string
+      }
+    });
+
+    if (userLinkCount >= 5) {
+      throw new Error("Link limit reached. You can only create up to 5 links.");
     }
 
     const title = formData.get("title") as string;

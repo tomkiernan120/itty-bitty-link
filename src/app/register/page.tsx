@@ -16,7 +16,14 @@ export default function Register() {
 
         try {
             await handleRegister(formData);
+            // If we reach here, registration succeeded but didn't redirect
+            // This shouldn't happen, but handle it gracefully
         } catch (err: any) {
+            // Don't catch NEXT_REDIRECT errors - let them propagate
+            if (err?.digest) {
+                throw err;
+            }
+
             const errorMessage = err.message || "Registration failed";
 
             // Parse validation errors from JSON string if needed

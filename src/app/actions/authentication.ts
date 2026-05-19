@@ -39,12 +39,26 @@ export const handleRegister = async (formdata: FormData) => {
     });
 
     // Auto-login after successful registration
-    await signIn("credentials", {
-      email: normalizedEmail,
-      password: validation.data.password,
-      redirectTo: "/dashboard"
-    });
+    try {
+      await signIn("credentials", {
+        email: normalizedEmail,
+        password: validation.data.password,
+        redirectTo: "/dashboard"
+      });
+    } catch (signInError: any) {
+      // signIn() with redirectTo will throw NEXT_REDIRECT which should not be caught
+      // Re-throw it so the redirect happens
+      if (signInError?.digest) {
+        throw signInError;
+      }
+      // Handle other errors
+      throw new Error("Auto-login failed after registration");
+    }
   } catch (error: any) {
+    // Don't catch NEXT_REDIRECT errors
+    if (error?.digest) {
+      throw error;
+    }
     // Handle duplicate email error
     if (error.code === "P2002") {
       throw new Error("An account with this email already exists");

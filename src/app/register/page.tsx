@@ -19,11 +19,11 @@ export default async function Register() {
               Register an account
             </h3>
 
-            <Input type="text" label="Name" />
+            <Input type="text" label="Name" name="name" required />
 
-            <Input type="email" label="Email" />
+            <Input type="email" label="Email" name="email" required />
 
-            <Input type="password" label="Password" />
+            <Input type="password" label="Password" name="password" required />
 
             <Button label="Register" variant="primary" type="submit" />
 

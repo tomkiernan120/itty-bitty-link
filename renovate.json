@@ -1,0 +1,46 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:base"],
+  "schedule": ["before 4am on Monday"],
+  "timezone": "UTC",
+  "groupName": "Weekly dependency updates",
+  "groupSlug": "weekly-updates",
+  "semanticCommits": "enabled",
+  "prConcurrentLimit": 1,
+  "prCreationLimit": 1,
+  "automerge": true,
+  "automergeType": "pr",
+  "automergeStrategy": "squash",
+  "ignoreTests": false,
+  "major": {
+    "groupName": null,
+    "groupSlug": null,
+    "automerge": false
+  },
+  "minor": {
+    "groupName": "Weekly dependency updates",
+    "groupSlug": "weekly-updates"
+  },
+  "patch": {
+    "groupName": "Weekly dependency updates",
+    "groupSlug": "weekly-updates"
+  },
+  "packageRules": [
+    {
+      "description": "Auto-merge non-major updates if all checks pass",
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "automerge": true
+    },
+    {
+      "description": "Require manual review for major updates",
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    },
+    {
+      "description": "Group security updates with weekly updates",
+      "matchDatasources": ["npm"],
+      "matchUpdateTypes": ["pin", "pinDigest"],
+      "groupName": "Weekly dependency updates"
+    }
+  ]
+}

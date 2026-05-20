@@ -14,6 +14,32 @@ const rubik = Rubik({
 export const metadata: Metadata = {
   title: "Itty Bitty Link",
   description: "Like TinyURL, but itty bitty-er.",
+  icons: {
+    icon: [
+      {
+        url: "/icon.svg",
+        type: "image/svg+xml",
+      },
+      {
+        url: "/icon.png",
+        sizes: "32x32",
+        type: "image/png",
+      },
+    ],
+    apple: [
+      {
+        url: "/apple-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Itty Bitty Link",
+  },
+  themeColor: "#115753",
 };
 
 export default function RootLayout({

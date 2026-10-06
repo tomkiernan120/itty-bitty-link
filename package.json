@@ -8,6 +8,8 @@
     "build:analyze": "ANALYZE=true next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test",
     "postinstall": "prisma generate",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
@@ -18,9 +20,6 @@
     "@fortawesome/free-brands-svg-icons": "^6.5.2",
     "@fortawesome/free-solid-svg-icons": "^6.5.2",
     "@fortawesome/react-fontawesome": "^0.2.2",
-    "@neondatabase/serverless": "^0.9.4",
-    "@next/font": "^14.2.4",
-    "@prisma/adapter-neon": "^5.16.1",
     "@prisma/client": "^5.16.1",
     "bcryptjs": "^2.4.3",
     "next": "14.2.35",

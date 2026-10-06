@@ -1,183 +1,191 @@
 "use server";
 
-import prisma from "@/utils/prisma";
-import { auth } from "../auth";
+import { randomInt } from "crypto";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import z from "zod";
+import prisma from "@/utils/prisma";
+import { MAX_LINKS_PER_USER } from "@/utils/limits";
+import { auth } from "../auth";
 
-const linkSchema = z.object({
-  title: z.string().min(1),
-  url: z.string().url()
-});
+export type LinkFormState = {
+  errors?: {
+    title?: string[];
+    url?: string[];
+    form?: string[];
+  };
+};
 
-const updatelinkSchema = z.object({
-  title: z.string().min(1),
-  url: z.string().url(),
-  id: z.string()
-});
+const ALIAS_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+const ALIAS_LENGTH = 7;
+const ALIAS_ATTEMPTS = 5;
 
-export const handleDelete = async (id: string) => {
-  "use server";
-
+const isHttpUrl = (value: string) => {
   try {
-    await prisma.link.delete({
-      where: {
-        id
-      }
-    });
-    return true;
-  } catch (err) {
-    return err;
+    const { protocol } = new URL(value);
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
   }
 };
 
-export const generateAlias = async (): Promise<string> => {
-  // a function that  generates a random string of 6 characters or more to use as a unique alias only increasing the length if the alias already exists
+const linkSchema = z.object({
+  title: z.string().trim().min(1, "Title is required").max(200, "Title must be 200 characters or fewer"),
+  url: z
+    .string()
+    .trim()
+    .max(2048, "URL must be 2048 characters or fewer")
+    .url("Enter a valid URL")
+    .refine(isHttpUrl, "URL must start with http:// or https://")
+});
 
-  const alias = Math.random().toString(36).substring(2, 8);
+const updatelinkSchema = linkSchema.extend({
+  id: z.string().min(1)
+});
 
-  const linkAlias = await prisma.linkAlias.findUnique({
+const idsSchema = z.array(z.string().min(1)).min(1).max(100);
+
+const generateAlias = () =>
+  Array.from({ length: ALIAS_LENGTH }, () => ALIAS_ALPHABET[randomInt(ALIAS_ALPHABET.length)]).join("");
+
+// Creates the link with a fresh random alias, retrying if that alias is already taken.
+const createLinkWithAlias = async (data: { title: string; url: string; userId: string }) => {
+  for (let attempt = 0; attempt < ALIAS_ATTEMPTS; attempt++) {
+    try {
+      return await prisma.link.create({
+        data: {
+          ...data,
+          image: null,
+          alias: generateAlias()
+        }
+      });
+    } catch (err: any) {
+      if (err?.code !== "P2002") {
+        throw err;
+      }
+    }
+  }
+
+  throw new Error("Could not generate a unique alias");
+};
+
+// Links pointing back at this site would only create redirect loops.
+const pointsToThisSite = (url: string) => {
+  const host = headers().get("host");
+
+  return Boolean(host) && new URL(url).host === host;
+};
+
+const getUserId = async () => {
+  const session = await auth();
+
+  return session?.user?.id;
+};
+
+export const handleDelete = async (id: string) => {
+  return handleDeleteMany([id]);
+};
+
+export const handleDeleteMany = async (ids: string[]) => {
+  const userId = await getUserId();
+  const validate = idsSchema.safeParse(ids);
+
+  if (!userId || !validate.success) {
+    return false;
+  }
+
+  const { count } = await prisma.link.deleteMany({
     where: {
-      alias
+      id: {
+        in: validate.data
+      },
+      userId
     }
   });
 
-  if (linkAlias) {
-    return generateAlias();
-  }
-
-  return alias;
+  return count > 0;
 };
 
-export const handleCreate = async (formData: FormData) => {
-  "use server";
-  try {
-    const session = await auth();
+export const handleCreate = async (_prevState: LinkFormState, formData: FormData): Promise<LinkFormState> => {
+  const userId = await getUserId();
 
-    if (!session || !session.user) {
-      return;
-    }
-
-    // Check if user has reached the 5-link limit
-    const userLinkCount = await prisma.link.count({
-      where: {
-        userId: session.user.id as string
-      }
-    });
-
-    if (userLinkCount >= 5) {
-      throw new Error("Link limit reached. You can only create up to 5 links.");
-    }
-
-    const title = formData.get("title") as string;
-    const url = formData.get("url") as string;
-
-    const validate = linkSchema.safeParse({
-      title,
-      url
-    });
-
-
-    if (!validate.success) {
-      throw new Error(JSON.stringify(validate.error.issues));
-    }
-
-    let linkAlias;
-
-    linkAlias = await prisma.linkAlias.findFirst({
-      where: {
-        url: url as string
-      }
-    });
-
-    if (!linkAlias) {
-      linkAlias = await prisma.linkAlias.create({
-        data: {
-          url,
-          alias: await generateAlias()
-        }
-      });
-    }
-
-    const link = await prisma.link.create({
-      data: {
-        title,
-        image: null,
-        linkAliasId: linkAlias?.id,
-        url,
-        userId: session?.user?.id as string
-      }
-    });
-  } catch (err: any) {
-    throw new Error(err.toString());
+  if (!userId) {
+    redirect("/login");
   }
 
-  // redirect to /dashboard
+  const validate = linkSchema.safeParse({
+    title: formData.get("title"),
+    url: formData.get("url")
+  });
+
+  if (!validate.success) {
+    return { errors: validate.error.flatten().fieldErrors };
+  }
+
+  const { title, url } = validate.data;
+
+  if (pointsToThisSite(url)) {
+    return { errors: { url: ["You can't shorten a link to this site"] } };
+  }
+
+  const userLinkCount = await prisma.link.count({
+    where: {
+      userId
+    }
+  });
+
+  if (userLinkCount >= MAX_LINKS_PER_USER) {
+    return { errors: { form: [`Link limit reached. You can only create up to ${MAX_LINKS_PER_USER} links.`] } };
+  }
+
+  await createLinkWithAlias({ title, url, userId });
+
   redirect("/dashboard");
 };
 
-export const handleUpdate = async (formData: FormData) => {
-  "use server";
+export const handleUpdate = async (_prevState: LinkFormState, formData: FormData): Promise<LinkFormState> => {
+  const userId = await getUserId();
 
-  const session = await auth();
-
-  try {
-
-    if (!session) {
-      throw new Error('Not authenticated');
-    }
-  
-    const validate = updatelinkSchema.safeParse(Object.fromEntries(formData));
-  
-    if (!validate.success) {
-      throw new Error(JSON.stringify(validate.error.issues));
-    }
-  
-    const id = formData.get("id") as string;
-    const title = formData.get("title") as string;
-    const url = formData.get("url") as string;
-  
-    let linkAlias;
-  
-    let link = await prisma.link.findUnique({
-      where: {
-        id
-      }
-    });
-  
-    if (link && url !== link.url) {
-      linkAlias = await prisma.linkAlias.findUnique({
-        where: {
-          alias: url as string
-        }
-      });
-  
-      if (!linkAlias) {
-        linkAlias = await prisma.linkAlias.create({
-          data: {
-            url,
-            alias: await generateAlias()
-          }
-        });
-      }
-    }
-  
-    link = await prisma.link.update({
-      where: {
-        id
-      },
-      data: {
-        title,
-        url,
-        linkAliasId: linkAlias?.id
-      }
-    });
-  }
-  catch(err: any) {
-    throw new Error(err.toString());
+  if (!userId) {
+    redirect("/login");
   }
 
+  const validate = updatelinkSchema.safeParse({
+    id: formData.get("id"),
+    title: formData.get("title"),
+    url: formData.get("url")
+  });
 
-  // redirect to /dashboard
+  if (!validate.success) {
+    return { errors: validate.error.flatten().fieldErrors };
+  }
+
+  const { id, title, url } = validate.data;
+
+  if (pointsToThisSite(url)) {
+    return { errors: { url: ["You can't shorten a link to this site"] } };
+  }
+
+  const link = await prisma.link.findFirst({
+    where: {
+      id,
+      userId
+    }
+  });
+
+  if (!link) {
+    return { errors: { form: ["Link not found"] } };
+  }
+
+  await prisma.link.update({
+    where: {
+      id: link.id
+    },
+    data: {
+      title,
+      url
+    }
+  });
+
   redirect("/dashboard");
 };

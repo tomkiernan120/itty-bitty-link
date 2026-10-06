@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -95,16 +94,8 @@ model Link {
   userId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  linkAlias LinkAlias   @relation(fields: [linkAliasId], references: [id])
-  linkAliasId String
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model LinkAlias {
-  id        String   @id @default(cuid())
   alias     String   @unique
-  url       String
-  links     Link[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

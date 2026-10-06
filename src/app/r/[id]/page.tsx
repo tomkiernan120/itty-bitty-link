@@ -1,35 +1,22 @@
 import prisma from "@/utils/prisma";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
-// Cache redirect lookups for 1 hour to reduce database queries
-export const revalidate = 3600;
+// Always look the alias up so edited and deleted links take effect immediately
+export const dynamic = 'force-dynamic';
 
-// Use Edge Runtime for minimal latency on redirects (global distribution)
-export const runtime = 'nodejs';
-
-export default await async function Page({ params
+export default async function Page({ params
 }: { params: { id: string }}) {
     const { id } = params;
 
-    if(!id) {
-        return null;
-    }
-
-    const linkAlias = await prisma.linkAlias.findUnique({
+    const link = await prisma.link.findUnique({
         where: {
             alias: id
-        },
-        include: {
-            links: true
         }
     });
 
-    if(linkAlias) {
-        // redirect to the link
-        return redirect(linkAlias.links[0].url)
+    if(!link) {
+        return notFound();
     }
-    else {
-        // redirect to 404
-        return redirect("/404");
-    }
+
+    return redirect(link.url);
 }

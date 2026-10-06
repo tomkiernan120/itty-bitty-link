@@ -8,12 +8,14 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request ) {
     const session = await auth();
 
-    if (!session) {
+    if (!session || !session.user || !session.user.id) {
         return new Response("Unauthorized", { status: 401 });
     }
 
+    const userId = session.user.id;
+
     var num_per_page = 10;
-    var page = parseInt((request as any).nextUrl.searchParams.get('page'));
+    var page = parseInt(new URL(request.url).searchParams.get('page') ?? '1', 10);
 
     var skip = (page > 0 ? page - 1 : 0) * num_per_page;
     var take = num_per_page;
@@ -21,10 +23,7 @@ export async function GET(request: Request ) {
 
     const links = await prisma.link.findMany({
         where: {
-            userId: session?.user?.id as string,
-        },
-        include: {
-            linkAlias: true,
+            userId,
         },
         orderBy: {
             createdAt: 'asc',
@@ -35,11 +34,11 @@ export async function GET(request: Request ) {
 
     const totalCount = await prisma.link.count({
         where: {
-            userId: session?.user?.id as string,
+            userId,
         }
     });
 
     var numPages = Math.ceil(totalCount / num_per_page);
 
-    return new Response(JSON.stringify({ links: links, pages: numPages, total: totalCount }));
+    return Response.json({ links: links, pages: numPages, total: totalCount });
 }

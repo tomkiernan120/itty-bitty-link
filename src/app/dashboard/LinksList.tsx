@@ -1,19 +1,25 @@
 "use client";
-import React, { useState } from "react";
-import useSWR, { mutate } from "swr";
-import { useSession } from "next-auth/react";
+import React, { useEffect, useState } from "react";
+import useSWR from "swr";
 import { faPlus, faSpinner } from "@fortawesome/free-solid-svg-icons";
-import { handleDelete } from "@/app/actions/links"; 
+import { handleDelete, handleDeleteMany } from "@/app/actions/links";
 import Button from "@/components/Button/primary";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Link } from "@prisma/client";
+import { MAX_LINKS_PER_USER } from "@/utils/limits";
 import CopyLink from "./CopyLink";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = async (url: string) => {
+    const res = await fetch(url);
+
+    if(!res.ok) {
+        throw new Error(`Failed to load links (${res.status})`);
+    }
+
+    return res.json();
+};
 
 export default function LinksList() {
-    const session = useSession();
-
     const [pageIndex, setPageIndex] = useState<number>(1);
     const [selected, setSelected] = useState<string[]>([]);
 
@@ -26,16 +32,23 @@ export default function LinksList() {
         }
     }
 
-    const { data, error, isLoading } = useSWR(`/api/links?page=${pageIndex}`, session ? fetcher : null);
+    const { data, error, isLoading, mutate } = useSWR(`/api/links?page=${pageIndex}`, fetcher);
 
-    const isAtLimit = data?.total >= 5;
+    // Step back when deleting empties the current page
+    useEffect(() => {
+        if(data && pageIndex > Math.max(data.pages, 1)) {
+            setPageIndex(Math.max(data.pages, 1));
+        }
+    }, [data, pageIndex]);
+
+    const isAtLimit = data?.total >= MAX_LINKS_PER_USER;
 
     return (
         <div className="flex flex-col">
             {data?.total !== undefined && (
                 <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-sm text-slate-700">
-                        <span className="font-semibold">{data.total}/5</span> links created
+                        <span className="font-semibold">{data.total}/{MAX_LINKS_PER_USER}</span> links created
                         {isAtLimit && <span className="text-orange-600 font-semibold ml-2">• Limit reached</span>}
                     </p>
                 </div>
@@ -46,12 +59,10 @@ export default function LinksList() {
 
                         const handle = async () => {
                             if(confirm(`Are you sure you want to delete ${selected?.length} links?`)) {
-                                selected.forEach(async (id) => {
-                                    await handleDelete(id);
-                                });
-    
+                                await handleDeleteMany(selected);
+
                                 setSelected([]);
-                                mutate("/api/links");
+                                await mutate();
                             }
                         }
 
@@ -64,8 +75,8 @@ export default function LinksList() {
                     href={isAtLimit ? "#" : "/dashboard/create"}
                     variant={isAtLimit ? "secondary" : "primary"}
                     disabled={isAtLimit}
-                    label={<span className="flex justify-center items-center space-x-2"><span>{isAtLimit ? "Limit Reached (5/5)" : "Create"}</span> {!isAtLimit && <FontAwesomeIcon className="w-4 h-4" fixedWidth icon={faPlus} />}</span>}
-                    title={isAtLimit ? "You have reached the maximum of 5 links. Delete a link to create a new one." : "Create a new link"}
+                    label={<span className="flex justify-center items-center space-x-2"><span>{isAtLimit ? `Limit Reached (${MAX_LINKS_PER_USER}/${MAX_LINKS_PER_USER})` : "Create"}</span> {!isAtLimit && <FontAwesomeIcon className="w-4 h-4" fixedWidth icon={faPlus} />}</span>}
+                    title={isAtLimit ? `You have reached the maximum of ${MAX_LINKS_PER_USER} links. Delete a link to create a new one.` : "Create a new link"}
                 />
             </div>
 
@@ -73,7 +84,7 @@ export default function LinksList() {
                 <table className="table-auto w-full">
                     <thead className="hidden md:table-header-group border-b">
                         <tr className="flex flex-col md:table-row mb-8 md:mb-0">
-                            <th className="table-cell text-left px-2 pb-2"><input type="checkbox" checked={(selected?.length === data?.links?.length && selected?.length) ? true : false} onChange={() => selectAll()} /></th>
+                            <th className="table-cell text-left px-2 pb-2"><input type="checkbox" aria-label="Select all links" checked={(selected?.length === data?.links?.length && selected?.length) ? true : false} onChange={() => selectAll()} /></th>
                             <th className="table-cell text-left px-2 pb-2">Title</th>
                             <th className="table-cell text-left px-2 pb-2">URL</th>
                             <th className="table-cell text-left px-2 pb-2">Alias</th>
@@ -82,25 +93,30 @@ export default function LinksList() {
                         </tr>
                     </thead>
                     <tbody>
-                        {data?.links?.length === 0 && error && (
+                        {error && (
                             <tr>
-                                <td className="table-cell text-left px-2 py-2" colSpan={5}>Uh, Oh! There was an error!</td>
+                                <td className="table-cell text-left px-2 py-2" colSpan={6}>Uh, Oh! There was an error!</td>
                             </tr>
-                        
+
                         )}
-                        {data?.links?.length === 0 && isLoading && (
+                        {isLoading && (
                             <tr>
-                                <td className="table-cell text-left px-2 py-2" colSpan={5}>
+                                <td className="table-cell text-left px-2 py-2" colSpan={6}>
                                     <div className="flex justify-center py-2 pt-4">
                                         <FontAwesomeIcon className="w-6 h-6" icon={faSpinner} spinPulse />
                                     </div>
                                 </td>
                             </tr>
-                        
+
+                        )}
+                        {!error && data?.links?.length === 0 && (
+                            <tr>
+                                <td className="table-cell text-left px-2 py-2 text-sm text-slate-600" colSpan={6}>No links yet. Create your first one!</td>
+                            </tr>
                         )}
                         {data?.links?.map((link: Link) => (
                             <tr key={link.id} className="odd:bg-green-300/5 flex flex-col md:table-row mb-4 md:mb-0 border-b md:border-b pb-4 md:pb-0">
-                                <td className="table-cell text-left px-2 py-2"><input type="checkbox" checked={selected?.includes(link.id)} onChange={() => {
+                                <td className="table-cell text-left px-2 py-2"><input type="checkbox" aria-label={`Select ${link.title}`} checked={selected?.includes(link.id)} onChange={() => {
                                     if(selected?.includes(link.id)) {
                                         setSelected(selected.filter((id) => id !== link.id));
                                     }
@@ -111,7 +127,7 @@ export default function LinksList() {
                                 <td className="table-cell text-left px-2 py-2 text-sm before:content-['Title:'] before:md:content-none before:font-bold before:mr-2 before:text-slate-600">{link.title}</td>
                                 <td className="table-cell text-left px-2 py-2 text-sm break-words before:content-['URL:'] before:md:content-none before:font-bold before:mr-2 before:text-slate-600">{link.url}</td>
                                 <td className="table-cell text-left px-2 py-2 text-sm break-words before:content-['Alias:'] before:md:content-none before:font-bold before:mr-2 before:text-slate-600">
-                                    <CopyLink alias={(link as any).linkAlias?.alias || ""} />
+                                    <CopyLink alias={link.alias} />
                                 </td>
                                 <td className="table-cell text-left px-2 py-2 text-sm before:content-['Created:'] before:md:content-none before:font-bold before:mr-2 before:text-slate-600">{new Date(link.createdAt).toLocaleDateString()}</td>
                                 <td className="table-cell text-left px-2 py-2">
@@ -120,7 +136,8 @@ export default function LinksList() {
                                         <Button type="button" onClick={async () => {
                                             if(confirm("Are you sure you want to delete this link?")) {
                                                 await handleDelete(link.id);
-                                                mutate("/api/links");
+                                                setSelected(selected.filter((id) => id !== link.id));
+                                                await mutate();
                                             }
                                         }} variant="secondary" size="small" label="Delete" />
                                     </div>
@@ -134,10 +151,10 @@ export default function LinksList() {
                 {data?.pages > 1 && (
                     <>
                         <Button type="button" disabled={pageIndex <= 1} onClick={() => setPageIndex(pageIndex - 1)} variant="primary" label="Previous" />
-                        
+
                             <div className="flex flex-row space-x-2">
                                 {[...Array(data.pages).keys()].map((page) => (
-                                    <Button key={page} type="button" onClick={() => setPageIndex(page)} variant="secondary" label={page + 1} />
+                                    <Button key={page} type="button" onClick={() => setPageIndex(page + 1)} variant="secondary" label={page + 1} />
                                 ))}
                             </div>
 

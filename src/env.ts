@@ -3,7 +3,6 @@ import { z } from 'zod';
 // Validate environment variables at runtime
 const envSchema = z.object({
   // Database
-  DATABASE_URL: z.string().url('DATABASE_URL must be a valid URL'),
   POSTGRES_PRISMA_URL: z.string().url('POSTGRES_PRISMA_URL must be a valid URL'),
 
   // Authentication

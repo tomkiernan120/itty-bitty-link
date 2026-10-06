@@ -21,6 +21,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Development
 npm run dev              # Start dev server (http://localhost:3000)
 npm run lint            # Run ESLint
+npm run typecheck       # Run the TypeScript compiler without emitting
 npm run build           # Production build
 npm start               # Run production server
 
@@ -30,7 +31,7 @@ npm postinstall         # Generate Prisma client (runs automatically)
 # Testing & Documentation
 npm run storybook           # Run Storybook on port 6006
 npm run build-storybook     # Build Storybook
-npx playwright test         # Run Playwright E2E tests
+npm run test:e2e            # Run Playwright E2E tests (writes to the configured database; never point at production)
 npx playwright test --ui    # Run tests in UI mode
 ```
 
@@ -45,22 +46,22 @@ The database has two main domain models:
    - Relations to links they've created
    - NextAuth integration via PrismaAdapter
 
-2. **Link & LinkAlias**: Implements the URL shortening service
-   - **Link**: Represents a user's saved link (with title, URL, image)
-   - **LinkAlias**: The shortened alias for a URL; multiple Links can share one LinkAlias if they point to the same URL (optimization to avoid duplicate short codes)
-   - The `linkAliasId` foreign key connects them
+2. **Link**: Implements the URL shortening service
+   - Represents a user's saved link (with title, URL, image)
+   - Each link has its own unique `alias`, the short code used in `/r/[alias]`
 
 ### Authentication Flow (src/app/auth.ts)
 
 NextAuth.js is configured with two providers:
 - **Credentials**: Email + bcryptjs password hashing
-- **Google OAuth**: `allowDangerousEmailAccountLinking` enabled for flexibility
+- **Google OAuth**: email account linking is deliberately off; registration does not verify emails, so linking would allow account takeover
 
 Key customizations:
 - Session callback adds `userId` to session object
 - JWT callback stores `user.id` in token
-- Custom pages: `/login`, `/auth/signout`, `/error`, `/auth/verify-request`
-- Middleware in `src/app/middleware.ts` exports auth as middleware for route protection
+- Custom pages: `/login` (also shows sign-in errors from the `?error=` query param)
+- `src/app/auth.config.ts` holds the edge-safe config (session, callbacks, pages); `auth.ts` adds the Prisma adapter and providers
+- `src/middleware.ts` uses the edge-safe config to redirect logged-out visitors away from `/dashboard/*`
 
 ### Routes & Pages
 
@@ -68,7 +69,7 @@ Key customizations:
 - `/` (Intro)
 - `/login` (authentication page with GoogleLoginButton)
 - `/register` (user registration)
-- `/r/[id]` (redirect endpoint to actual URL using LinkAlias)
+- `/r/[id]` (redirect endpoint; looks the link up by its `alias`)
 
 **Protected Routes** (require authentication):
 - `/dashboard` (main dashboard with LinksList component)
@@ -78,17 +79,17 @@ Key customizations:
 ### Server Actions (src/app/actions/)
 
 **links.ts** - All link CRUD operations as server actions:
-- `generateAlias()`: Recursively generates unique 6+ character random alias
-- `handleCreate()`: Creates new Link + LinkAlias, validates with Zod schema
-- `handleUpdate()`: Updates existing Link, creates new LinkAlias if URL changes
-- `handleDelete()`: Deletes a link
+- `handleCreate()` / `handleUpdate()`: `useFormState` actions that return `{ errors }` for validation problems and redirect on success; rendered by `src/app/dashboard/LinkForm.tsx`
+- `handleDelete()` / `handleDeleteMany()`: Delete links
+- Every action checks the session and scopes queries to the current `userId`
+- Aliases are 7-character base62 strings from `crypto.randomInt`, assigned once at creation by the internal `createLinkWithAlias()` helper
 
 **authentication.ts**: Handles credential and registration logic (referenced in pages)
 
 ### API Routes (src/app/api/)
 
 - `/api/auth/[...nextauth]/route.ts`: NextAuth endpoint
-- `/api/links/route.ts`: Public link management API
+- `/api/links/route.ts`: Paginated list of the signed-in user's links (401 when logged out)
 
 ### Component Structure (src/components/)
 
@@ -115,14 +116,16 @@ Organized by feature with Storybook documentation:
 
 1. **Database Migrations**: Prisma migrations exist in `prisma/migrations/`. Use `npx prisma migrate dev` for schema changes.
 
-2. **LinkAlias Optimization**: The LinkAlias model avoids creating duplicate short codes for the same URL. When creating/updating a link, check if the URL already has an alias before creating a new one.
+2. **One Alias Per Link**: A link's alias is set at creation and never changes, even when its URL is edited. Aliases are not shared between links or users.
 
 3. **Session Management**: The auth session includes `userId` via the session callback. Always check `session?.user?.id` before accessing user-specific data.
 
-4. **Error Handling**: Server actions throw errors with descriptive messages. Components should handle these gracefully and display validation errors from Zod schemas.
+4. **Error Handling**: Link actions return field errors as form state instead of throwing; the registration action still throws errors with descriptive messages.
 
-5. **Form Validation**: Links use Zod schemas (`linkSchema` and `updatelinkSchema`) with `safeParse()` for type-safe validation before database operations.
+5. **Form Validation**: Links use Zod schemas (`linkSchema` and `updatelinkSchema`) with `safeParse()` for type-safe validation before database operations. Only `http:`/`https:` URLs are accepted.
 
-6. **Styling**: Tailwind classes are used throughout. Custom color values are defined in `tailwind.config.ts`, prefer those over arbitrary values.
+6. **Link Limit**: The per-user limit lives in `src/utils/limits.ts` (`MAX_LINKS_PER_USER`); do not hard-code it.
 
-7. **Storybook**: Component stories are in `.stories.tsx` files and can be run with `npm run storybook` for documentation and isolated testing.
+7. **Styling**: Tailwind classes are used throughout. Custom color values are defined in `tailwind.config.ts`, prefer those over arbitrary values.
+
+8. **Storybook**: Component stories are in `.stories.tsx` files and can be run with `npm run storybook` for documentation and isolated testing.

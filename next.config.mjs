@@ -20,12 +20,6 @@ const nextConfig = {
 
   // Image optimization configuration
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
-    ],
     formats: ['image/avif', 'image/webp'],
   },
 };

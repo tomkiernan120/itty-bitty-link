@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Rubik } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header/default";
@@ -39,6 +39,9 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Itty Bitty Link",
   },
+};
+
+export const viewport: Viewport = {
   themeColor: "#115753",
 };
 

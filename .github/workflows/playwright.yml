@@ -1,4 +1,4 @@
-name: Playwright Tests
+name: CI
 on:
   push:
     branches: [ main, master ]
@@ -8,17 +8,48 @@ jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ittybitty
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ittybitty
+      POSTGRES_PRISMA_URL: postgresql://postgres:postgres@localhost:5432/ittybitty
+      POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@localhost:5432/ittybitty
+      AUTH_SECRET: ci-only-secret
+      AUTH_URL: http://127.0.0.1:3000
+      GOOGLE_CLIENT_ID: ci-placeholder
+      GOOGLE_CLIENT_SECRET: ci-placeholder
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
       with:
         node-version: lts/*
+        cache: npm
     - name: Install dependencies
-      run: npm install -g yarn && yarn
+      run: npm ci
+    - name: Apply database migrations
+      run: npx prisma migrate deploy
+    - name: Lint
+      run: npm run lint
+    - name: Typecheck
+      run: npm run typecheck
+    - name: Build
+      run: npm run build
     - name: Install Playwright Browsers
-      run: yarn playwright install --with-deps
+      run: npx playwright install --with-deps
     - name: Run Playwright tests
-      run: yarn playwright test
+      run: npm run test:e2e
     - uses: actions/upload-artifact@v4
       if: always()
       with:

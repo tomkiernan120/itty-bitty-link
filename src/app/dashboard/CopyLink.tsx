@@ -20,15 +20,17 @@ export default function CopyLink({ alias }: { alias: string }) {
             <code>{alias}</code>
 
             <div className="relative">
-                {showCopied && <div className="absolute bg-slate-700 text-white text-sm rounded-lg p-1 -top-8 left-1/2 -translate-x-1/2 ">
+                {showCopied && <div role="status" className="absolute bg-slate-700 text-white text-sm rounded-lg p-1 -top-8 left-1/2 -translate-x-1/2 ">
                     Copied
                 </div>}
 
-                <FontAwesomeIcon className="cursor-pointer w-4 h-4" fixedWidth onClick={() => {
+                <button type="button" aria-label={`Copy short link ${alias}`} className="flex items-center focus:outline-none focus:ring-2 focus:ring-teal-200 rounded" onClick={() => {
                     setShowCopied(true);
                     setTimeout(() => setShowCopied(false), 2000);
                     navigator.clipboard.writeText(link);
-                }} icon={faCopy} /> 
+                }}>
+                    <FontAwesomeIcon className="w-4 h-4" fixedWidth icon={faCopy} />
+                </button>
             </div>
         </span>
     )

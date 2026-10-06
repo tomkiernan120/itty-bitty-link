@@ -5,16 +5,12 @@ import Credentials from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { env } from "@/env";
+import { authConfig } from "./auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(prisma),
   secret: env.AUTH_SECRET,
-  trustHost: true,
-  session: {
-    strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-    updateAge: 24 * 60 * 60, // 24 hours
-  },
   providers: [
     Credentials({
       name: "Credentials",
@@ -62,28 +58,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     GoogleProvider({
       clientId: env.GOOGLE_CLIENT_ID,
       clientSecret: env.GOOGLE_CLIENT_SECRET,
-      allowDangerousEmailAccountLinking: true,
     })
-  ],
-  callbacks: {
-    async session({ session, token }) {
-      if (session.user && typeof token.id === "string") {
-        session.user.id = token.id;
-      }
-
-      return session;
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-      }
-      return token;
-    }
-  },
-  pages: {
-    signIn: "/login",
-    signOut: "/auth/signout",
-    error: "/error",
-    verifyRequest: "/auth/verify-request",
-  }
+  ]
 });

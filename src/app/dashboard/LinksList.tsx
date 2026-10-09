@@ -16,6 +16,8 @@ export default function LinksList() {
 
     const [pageIndex, setPageIndex] = useState<number>(1);
     const [selected, setSelected] = useState<string[]>([]);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const selectAll = () => {
         if(selected?.length === data?.links?.length) {
@@ -40,22 +42,43 @@ export default function LinksList() {
                     </p>
                 </div>
             )}
+            {deleteError && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-700">{deleteError}</p>
+                </div>
+            )}
+
             <div className="flex flex-row mb-8 justify-end space-x-2">
                 {selected?.length > 0 && (
-                    <Button type="button" label={`Delete (${selected?.length})`} variant="primary" onClick={() => {
+                    <Button type="button" label={`Delete (${selected?.length})`} variant="primary" disabled={isDeleting} onClick={() => {
 
                         const handle = async () => {
                             if(confirm(`Are you sure you want to delete ${selected?.length} links?`)) {
-                                selected.forEach(async (id) => {
-                                    await handleDelete(id);
-                                });
-    
-                                setSelected([]);
-                                mutate("/api/links");
+                                setIsDeleting(true);
+                                setDeleteError(null);
+                                let hasErrors = false;
+
+                                for (const id of selected) {
+                                    const result = await handleDelete(id);
+                                    if (!result.success) {
+                                        setDeleteError(result.error);
+                                        hasErrors = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!hasErrors) {
+                                    setSelected([]);
+                                    mutate("/api/links");
+                                }
+                                setIsDeleting(false);
                             }
                         }
 
-                        handle().catch((e) => console.error(e));
+                        handle().catch((e) => {
+                            setDeleteError("An unexpected error occurred");
+                            setIsDeleting(false);
+                        });
                     }} />
                 )}
 
@@ -119,10 +142,17 @@ export default function LinksList() {
                                         <Button type="link" href={`/dashboard/edit/${link.id}`} size="small" variant="primary" label="Edit" />
                                         <Button type="button" onClick={async () => {
                                             if(confirm("Are you sure you want to delete this link?")) {
-                                                await handleDelete(link.id);
-                                                mutate("/api/links");
+                                                setIsDeleting(true);
+                                                setDeleteError(null);
+                                                const result = await handleDelete(link.id);
+                                                if (result.success) {
+                                                    mutate("/api/links");
+                                                } else {
+                                                    setDeleteError(result.error);
+                                                }
+                                                setIsDeleting(false);
                                             }
-                                        }} variant="secondary" size="small" label="Delete" />
+                                        }} variant="secondary" size="small" label="Delete" disabled={isDeleting} />
                                     </div>
                                 </td>
                             </tr>

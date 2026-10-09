@@ -7,13 +7,17 @@ import prisma from "@/utils/prisma";
 import bcrypt from "bcryptjs";
 import z from "zod";
 
+type ActionResult<T = null> =
+  | { success: true; data?: T }
+  | { success: false; error: string };
+
 const registerSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Valid email is required"),
   password: z.string().min(6, "Password must be at least 6 characters")
 });
 
-export const handleRegister = async (formdata: FormData) => {
+export const handleRegister = async (formdata: FormData): Promise<ActionResult> => {
   try {
     const { name, email, password } = Object.fromEntries(formdata);
 
@@ -24,7 +28,8 @@ export const handleRegister = async (formdata: FormData) => {
     });
 
     if (!validation.success) {
-      throw new Error(JSON.stringify(validation.error.issues));
+      const errorMessage = validation.error.issues[0]?.message || "Validation failed";
+      return { success: false, error: errorMessage };
     }
 
     const passwordHashed = await bcrypt.hash(validation.data.password, 10);
@@ -45,40 +50,49 @@ export const handleRegister = async (formdata: FormData) => {
         password: validation.data.password,
         redirectTo: "/dashboard"
       });
+      // signIn with redirectTo throws NEXT_REDIRECT, so we never reach here
+      return { success: true };
     } catch (signInError: any) {
-      // signIn() with redirectTo will throw NEXT_REDIRECT which should not be caught
-      // Re-throw it so the redirect happens
+      // signIn() with redirectTo will throw NEXT_REDIRECT which should propagate
       if (signInError?.digest) {
         throw signInError;
       }
-      // Handle other errors
-      throw new Error("Auto-login failed after registration");
+      return { success: false, error: "Auto-login failed after registration" };
     }
   } catch (error: any) {
-    // Don't catch NEXT_REDIRECT errors
+    // Let NEXT_REDIRECT propagate
     if (error?.digest) {
       throw error;
     }
+
     // Handle duplicate email error
     if (error.code === "P2002") {
-      throw new Error("An account with this email already exists");
+      return { success: false, error: "An account with this email already exists" };
     }
-    throw new Error(error.message || "Registration failed");
+
+    return { success: false, error: error.message || "Registration failed" };
   }
 };
 
-export const handleLogin = async (formdata: FormData) => {
+export const handleLogin = async (formdata: FormData): Promise<ActionResult> => {
   try {
     await signIn("credentials", {
       email: String(formdata.get("email") ?? "").trim().toLowerCase(),
       password: String(formdata.get("password") ?? ""),
       redirectTo: "/dashboard"
     });
-  } catch (error) {
-    if (error instanceof AuthError && error.type === "CredentialsSignin") {
-      redirect("/login?error=invalid_credentials");
+    // signIn with redirectTo throws NEXT_REDIRECT, so we never reach here
+    return { success: true };
+  } catch (error: any) {
+    // Let NEXT_REDIRECT propagate
+    if (error?.digest) {
+      throw error;
     }
 
-    throw error;
+    if (error instanceof AuthError && error.type === "CredentialsSignin") {
+      return { success: false, error: "Invalid email or password" };
+    }
+
+    return { success: false, error: error.message || "Login failed" };
   }
 };

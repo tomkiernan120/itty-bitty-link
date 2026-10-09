@@ -5,19 +5,18 @@ import prisma from "@/utils/prisma";
 // Dynamic route - user-specific data changes per request
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request ) {
+export async function GET(request: Request) {
     const session = await auth();
 
     if (!session) {
-        return new Response("Unauthorized", { status: 401 });
+        return Response.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    var num_per_page = 10;
-    var page = parseInt((request as any).nextUrl.searchParams.get('page'));
+    const num_per_page = 10;
+    const page = parseInt((request as any).nextUrl.searchParams.get('page') || '1');
 
-    var skip = (page > 0 ? page - 1 : 0) * num_per_page;
-    var take = num_per_page;
-
+    const skip = (page > 0 ? page - 1 : 0) * num_per_page;
+    const take = num_per_page;
 
     const links = await prisma.link.findMany({
         where: {
@@ -39,7 +38,13 @@ export async function GET(request: Request ) {
         }
     });
 
-    var numPages = Math.ceil(totalCount / num_per_page);
+    const numPages = Math.ceil(totalCount / num_per_page);
 
-    return new Response(JSON.stringify({ links: links, pages: numPages, total: totalCount }));
+    return Response.json({
+        success: true,
+        links: links,
+        pages: numPages,
+        total: totalCount,
+        count: totalCount
+    });
 }

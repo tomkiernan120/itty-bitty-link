@@ -1,29 +1,48 @@
-import React from "react";
-import { auth } from "@/app/auth";
-import prisma from "@/utils/prisma";
+"use client";
+
+import React, { useState } from "react";
 import { handleCreate } from "@/app/actions/links";
-import { redirect } from "next/navigation";
 import Input from "@/components/Forms/Input";
 import Button from "@/components/Button/primary";
-import { useFormState } from "react-dom";
-import { SubmitButton } from "@/components/Forms/SubmitButton";
 
-// Create page is always dynamic - requires authentication
-export const dynamic = 'force-dynamic';
+export default function Page() {
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
+  const [linkCount, setLinkCount] = useState(0);
 
-export default async function Page() {
-  const session = await auth();
+  React.useEffect(() => {
+    const fetchLinkCount = async () => {
+      const response = await fetch("/api/links");
+      const data = await response.json();
+      if (data.success) {
+        setLinkCount(data.count || 0);
+      }
+    };
+    fetchLinkCount();
+  }, []);
 
-  if (!session || !session.user || !session.user.id) {
-    return redirect("/login");
-  }
+  const handleSubmit = async (formData: FormData) => {
+    setError(null);
+    setIsPending(true);
 
-  // Check current link count
-  const linkCount = await prisma.link.count({
-    where: {
-      userId: session.user.id
+    try {
+      const result = await handleCreate(formData);
+
+      if (!result.success) {
+        setError(result.error);
+        setIsPending(false);
+        return;
+      }
+      // If successful, will redirect automatically
+    } catch (err: any) {
+      // Let NEXT_REDIRECT propagate
+      if (err?.digest) {
+        throw err;
+      }
+      setError("An unexpected error occurred");
+      setIsPending(false);
     }
-  });
+  };
 
   const isAtLimit = linkCount >= 5;
 
@@ -41,17 +60,23 @@ export default async function Page() {
   }
 
   return <main className="flex items-center justify-center py-10">
-        <form className="border rounded-lg bg-white flex flex-col space-y-8 px-8 py-6 drop-shadow w-full md:w-96" action={handleCreate}>
-          <div>
-            <h3 className="text-lg text-slate-700 font-bold mb-2">Create Link</h3>
-            <p className="text-xs text-slate-500">{linkCount}/5 links</p>
-          </div>
+    <form className="border rounded-lg bg-white flex flex-col space-y-8 px-8 py-6 drop-shadow w-full md:w-96" action={handleSubmit}>
+      <div>
+        <h3 className="text-lg text-slate-700 font-bold mb-2">Create Link</h3>
+        <p className="text-xs text-slate-500">{linkCount}/5 links</p>
+      </div>
 
-          <Input type="text" label="Title" name="title" required />
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
 
-          <Input type="url" required label="URL" name="url" />
+      <Input type="text" label="Title" name="title" required disabled={isPending} />
 
-          <SubmitButton>Create</SubmitButton>
-        </form>
-    </main>;
+      <Input type="url" required label="URL" name="url" disabled={isPending} />
+
+      <Button label={isPending ? "Creating..." : "Create"} variant="primary" type="submit" loading={isPending} disabled={isPending} />
+    </form>
+  </main>;
 }

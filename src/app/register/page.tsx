@@ -15,32 +15,19 @@ export default function Register() {
         setIsPending(true);
 
         try {
-            await handleRegister(formData);
-            // If we reach here, registration succeeded but didn't redirect
-            // This shouldn't happen, but handle it gracefully
+            const result = await handleRegister(formData);
+
+            if (!result.success) {
+                setError(result.error);
+                return;
+            }
+            // If successful, will redirect automatically
         } catch (err: any) {
-            // Don't catch NEXT_REDIRECT errors - let them propagate
+            // Let NEXT_REDIRECT propagate
             if (err?.digest) {
                 throw err;
             }
-
-            const errorMessage = err.message || "Registration failed";
-
-            // Parse validation errors from JSON string if needed
-            if (errorMessage.startsWith("[")) {
-                try {
-                    const issues = JSON.parse(errorMessage);
-                    if (Array.isArray(issues) && issues.length > 0) {
-                        setError(issues[0].message);
-                    } else {
-                        setError(errorMessage);
-                    }
-                } catch {
-                    setError(errorMessage);
-                }
-            } else {
-                setError(errorMessage);
-            }
+            setError("An unexpected error occurred");
         } finally {
             setIsPending(false);
         }

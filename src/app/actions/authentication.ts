@@ -44,21 +44,13 @@ export const handleRegister = async (formdata: FormData): Promise<ActionResult> 
     });
 
     // Auto-login after successful registration
-    try {
-      await signIn("credentials", {
-        email: normalizedEmail,
-        password: validation.data.password,
-        redirectTo: "/dashboard"
-      });
-      // signIn with redirectTo throws NEXT_REDIRECT, so we never reach here
-      return { success: true };
-    } catch (signInError: any) {
-      // signIn() with redirectTo will throw NEXT_REDIRECT which should propagate
-      if (signInError?.digest) {
-        throw signInError;
-      }
-      return { success: false, error: "Auto-login failed after registration" };
-    }
+    await signIn("credentials", {
+      email: normalizedEmail,
+      password: validation.data.password,
+      redirectTo: "/dashboard"
+    });
+    // signIn with redirectTo throws NEXT_REDIRECT, so we never reach here
+    return { success: true };
   } catch (error: any) {
     // Let NEXT_REDIRECT propagate
     if (error?.digest) {

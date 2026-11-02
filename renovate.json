@@ -7,7 +7,6 @@
   "groupSlug": "weekly-updates",
   "semanticCommits": "enabled",
   "prConcurrentLimit": 1,
-  "prCreationLimit": 1,
   "automerge": true,
   "automergeType": "pr",
   "automergeStrategy": "squash",

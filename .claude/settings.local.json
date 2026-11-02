@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(convert:*)"
+      "Bash(convert:*)",
+      "Bash(npm run *)",
+      "Bash(npx storybook *)",
+      "Bash(git restore *)",
+      "Bash(git add *)"
     ],
     "deny": [],
     "ask": []
